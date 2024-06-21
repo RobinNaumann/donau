@@ -1,11 +1,4 @@
-import {
-  bearerAuth,
-  donauServerRun,
-  err,
-  parameterPath,
-  route,
-  type DonauRoute,
-} from "..";
+import { donauServerRun, err, parameterPath, route, type DonauRoute } from "..";
 
 const routes: DonauRoute[] = [
   route("/hello/{greeting}", {
@@ -35,7 +28,6 @@ export function runMinimalExample() {
       description:
         "This API aims to showcase the basic abilities of the donau API package",
     },
-    securitySchemes: { bearerAuth },
     routes: routes,
   });
 }
