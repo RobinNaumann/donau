@@ -207,7 +207,11 @@ function _makeWorker<U>(def: DonauRoute<U>, auth: boolean) {
         r instanceof Object ? res.json(r) : res.send(r);
         return;
       }
-      def.handler?.(req, res) ?? _noHandler(req, res);
+      if (def.handler) {
+        def.handler(req, res);
+        return;
+      }
+      _noHandler(req, res);
     } catch (e) {
       sendError(res, e);
     }
