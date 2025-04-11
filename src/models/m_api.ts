@@ -1,5 +1,8 @@
 import type { CorsOptions } from "cors";
 import express from "express";
+import type { DonauAuth } from "../auth/auth";
+
+export type PromiseOr<T> = Promise<T> | T;
 
 export interface ApiParameter {
   name: string;
@@ -30,14 +33,14 @@ export interface DonauRoute<U = any> {
   parameters?: ApiParameter[];
   reqBody?: ApiRequestBody;
   responses?: { [key: string]: ApiResponse };
-  handler?: (req: express.Request, res: express.Response) => void;
+  handler?: (req: express.Request, res: express.Response) => PromiseOr<void>;
   handlerAuthed?: (
     user: U,
     req: express.Request,
     res: express.Response
-  ) => void;
-  worker?: (...args: any[]) => any;
-  workerAuthed?: (user: U, ...args: any[]) => any;
+  ) => PromiseOr<void>;
+  worker?: (...args: any[]) => PromiseOr<any>;
+  workerAuthed?: (user: U, ...args: any[]) => PromiseOr<any>;
 }
 
 export type ExpressMiddleware = (
@@ -55,13 +58,10 @@ export interface DonauApiInfo {
 export interface DonauApiConfig<U> {
   cors?: CorsOptions;
   info: DonauApiInfo;
-  auth?: ExpressMiddleware;
-  securitySchemes?: {
-    bearerAuth?: any;
-  };
+  auth?: DonauAuth<U>;
   servers?: { url: string; description: string }[];
   apiPath?: string;
-  docsPath?: string;
+  docsPath?: string | null;
   routes: DonauRoute<U>[]; // U is the user type
 }
 
@@ -74,9 +74,8 @@ export const defaultConfig: DonauApiConfig<any> = {
       description: "local",
     },
   ],
-  //securitySchemes: {},
   info: {
-    title: "unknown API",
+    title: "unnamed API",
     description: "default API configuration for donauAPI",
     version: "1.0.0",
   },

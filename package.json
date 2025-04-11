@@ -1,7 +1,7 @@
 {
   "name": "donau",
-  "version": "0.3.3",
-  "description": "Donau is a simple and lightweight REST API framework for Node.js. It is built on top of Express.js and provides a set of decorators to simplify the development of REST APIs.",
+  "version": "0.4.1",
+  "description": "a simple and lightweight REST API framework. It is built on top of express.js and provides a set of decorators to simplify the development of REST APIs.",
   "author": {
     "name": "Robin Naumann",
     "email": "robin.naumann@proton.me"
@@ -21,6 +21,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "chalk": "^5.3.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

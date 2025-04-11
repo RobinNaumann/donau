@@ -1,6 +1,5 @@
 import {
-  authMiddlewareToken,
-  bearerAuth,
+  BasicAuth,
   donauServerRun,
   err,
   grouped,
@@ -13,7 +12,9 @@ import {
 type AuthUser = {
   username: string;
   name: string;
+  passwordHash: string;
 };
+const users: AuthUser[] = [];
 
 const protectedRoutes: DonauRoute<AuthUser>[] = [
   routeAuthed("/name", {
@@ -34,9 +35,11 @@ const protectedRoutes: DonauRoute<AuthUser>[] = [
         name: "string",
       },
     },
-    description:
-      "set your name (always returns 'ok'. does not actually set anything)",
+    description: "set your name to a new value",
     workerAuthed: (user, body) => {
+      const uIndex = users.findIndex((u) => u.username === user.username);
+      if (uIndex === -1) return err.notFound("user not found");
+      users[uIndex].name = body.name;
       return { message: `set ${body.name} as your new name` };
     },
   }),
@@ -59,9 +62,19 @@ const routes: DonauRoute[] = [
   }),
 ];
 
-/**
- * Run a more complex example. this serves the exampleAPI on port 1235 at path `/api`
- */
+const auth = new BasicAuth<AuthUser>({
+  //secretKey: "supersecretkey",
+  onSignUp: async (username, passwordHash) => {
+    users.push({ username, name: "Unnamed User", passwordHash });
+  },
+  getUser: async (username) => {
+    return users.find((u) => u.username === username);
+  },
+  getPasswordHash: async (username) => {
+    return users.find((u) => u.username === username)?.passwordHash;
+  },
+});
+
 export function runAuthExample() {
   donauServerRun(1235, {
     info: {
@@ -70,11 +83,7 @@ export function runAuthExample() {
       description:
         "This API aims to showcase the abilities of the donau API package",
     },
-    securitySchemes: { bearerAuth },
-    auth: authMiddlewareToken<AuthUser>(async (token) => ({
-      name: "John Doe",
-      username: "johndoe",
-    })),
+    auth: auth,
     routes: [
       ...routes,
       ...grouped(protectedRoutes, {

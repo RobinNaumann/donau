@@ -1,4 +1,6 @@
-import type { ApiParameter, DonauRoute } from "./m_docu";
+import type { ApiParameter, DonauRoute } from "../models/m_api";
+
+type HttpMethod = "get" | "post" | "delete";
 
 /**
  * Group a set of route definitions under a common prefix and tags. This function
@@ -35,7 +37,7 @@ export function route<U>(
     DonauRoute<U>,
     "path" | "workerAuthed" | "handlerAuthed" | "method"
   > & {
-    method?: "get" | "post" | "delete";
+    method?: HttpMethod;
   }
 ): DonauRoute<U> {
   return { method, ...rest, path };
@@ -54,7 +56,7 @@ export function routeAuthed<U>(
     method = "get",
     ...rest
   }: Omit<DonauRoute<U>, "path" | "worker" | "handler" | "method"> & {
-    method?: "get" | "post" | "delete";
+    method?: HttpMethod;
   }
 ): DonauRoute<U> {
   return { method, ...rest, path };

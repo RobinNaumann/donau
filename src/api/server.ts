@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import express from "express";
+import { type DonauApiConfig } from "../models/m_api";
 import { logger } from "../util/log";
-import { donauApi } from "./docu";
-import { type DonauApiConfig } from "./m_docu";
+import { donauApi } from "./api";
 
 /**
  * run the donau server on a given port. This function will create an express app, add the donau API and run the server.
