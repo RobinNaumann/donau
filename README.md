@@ -1,10 +1,10 @@
-<img src="https://raw.githubusercontent.com/RobinNaumann/donau/main/assets/donau_API_logo.png" width="220px" /><br><br>
+<img src="assets/donau_API_logo.png" width="220px" /><br><br>
 
 # **donau** &nbsp;&nbsp;&nbsp;&nbsp; REST API framework
 
 a lightweight framework for defining and running REST APIs. It is based on express and automatically generates and serves an open api documentation.
 
-_<img src="./assets/screenshot.png" width="300px">_
+_<img src="assets/screenshot.png" width="300px">_
 
 ## features
 
