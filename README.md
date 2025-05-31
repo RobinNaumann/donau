@@ -49,7 +49,7 @@ const routes: DonauRoute[] = [
 ];
 ```
 
-and then configuring the API
+and then configuring the server:
 
 ```typescript
 donauServerRun(1235 /* the port */, {
@@ -58,9 +58,15 @@ donauServerRun(1235 /* the port */, {
     version: "1.0.3",
     description: "an example API",
   },
+  //cors: {origin: "*"},
   routes: routes,
 });
 ```
+
+that's it! the API is now running on `localhost:1235/api`.
+You can access the open api documentation at `localhost:1235/docs`.
+
+If you want to disable the documentation, you can set `docsPath: null`.
 
 ### authentication
 
@@ -85,17 +91,54 @@ donauServerRun(1235, {
     version: "1.0.3",
     description: "an example API",
   },
-  routes: [
-    ...yourRoutes,
-    ...jwtAuth.routes, // this adds the auth routes to your API
-
-    ],
-  // this adds the auth middleware to your API
-  auth: jwtAuth.middleware,
+  routes: yourRoutes,
+  // this adds the auth middleware and routes to your API
+  auth: jwtAuth,
 });
 ```
 
 you can then use the `handlerAuthed` function to define protected routes
+
+## server calls
+
+donau also provides a simple client side API. this makes it possible to define functions both in the server and the client. This allows you to implement simple web applications without explicitly defining a REST API. The function calls are also type safe
+
+1. in a shared file, define your server call functions signatures
+
+```typescript
+import { serverCall } from "donau/servercalls/shared";
+
+export const serverCalls = {
+  timesTwo: serverCall<{ n: number }, number>(),
+  // pass {auth: true} to enable authentication
+};
+```
+
+2. in the client project, define the use-interface
+
+```typescript
+import { useServerCalls } from "donau/servercalls/client";
+
+const onServer = useServerCalls(serverCalls);
+```
+
+3. in the server project, add the function definitions
+
+```typescript
+import { handleServerCalls } from "donau/servercalls/server";
+
+const scRoutes = handleServerCalls(serverCalls, {
+  timesTwo: async ({ n }) => n * 2,
+});
+
+// then add those routes to your donau routes
+```
+
+now you're good to go. You can use the functions from the client by calling
+
+```typescript
+const result = await onServer.timesTwo({ n: 2 });
+```
 
 ## contribution
 
@@ -105,3 +148,7 @@ _I hope this package is useful to you,_<br>
 _Yours, Robin_
 
 [!["donate"](https://robbb.in/donate/widgets/btn_long_git.png)](https://robbb.in/donate)
+
+```
+
+```

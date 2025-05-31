@@ -46,7 +46,7 @@ function _donauApi<U>(e: express.Express, config: DonauApiConfig<U>): void {
     _remoteExtractMiddleware(),
     cookieParser(),
     express.json(),
-    config.cors ? cors(config.cors) : undefined,
+    cors(config.cors ?? undefined),
   ].forEach((m) => m && _api.use(m));
 
   for (const a of config.routes) {

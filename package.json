@@ -1,11 +1,24 @@
 {
   "name": "donau",
-  "version": "0.4.3",
+  "version": "0.4.8",
   "description": "a simple and lightweight REST API framework. It is built on top of express.js and provides a set of decorators to simplify the development of REST APIs.",
   "author": {
     "name": "Robin Naumann",
     "email": "robin.naumann@proton.me"
   },
+  "keywords": [
+    "typescript",
+    "express",
+    "rest",
+    "api",
+    "framework",
+    "decorators",
+    "openapi",
+    "swagger",
+    "auth",
+    "jwt",
+    "middleware"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RobinNaumann/donau.git"

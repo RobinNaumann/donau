@@ -9,20 +9,24 @@ import { donauApi } from "./api";
  * if you want to add additional services to the server, you can pass them as an array of functions.
  * @param port the port to run the server on
  * @param config the donau API configuration
- * @param services an array of functions that add additional services to the server
+ * @param preServices an array of functions that add additional services to the server. these will be called before the donau API is added.
+ * @param postServices an array of functions that add additional services to the server. these will be called after the donau API is added.
  * @returns the express app that is running the server
  */
 export function donauServerRun(
   port: number,
   config: DonauApiConfig<any>,
-  services?: ((e: express.Express) => void)[]
+  preServices?: ((e: express.Express) => void)[],
+  postServices?: ((e: express.Express) => void)[]
 ): express.Express | null {
   try {
     const app = express();
+    for (const s of preServices ?? []) s(app);
+
     const api = donauApi(config, port);
     api(app);
 
-    for (const s of services ?? []) s(app);
+    for (const s of postServices ?? []) s(app);
 
     app.listen(port);
     logger.success(`donau API server running on port ${chalk.bold(port)}`);
