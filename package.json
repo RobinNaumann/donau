@@ -1,6 +1,6 @@
 {
   "name": "donau",
-  "version": "0.4.8",
+  "version": "0.4.10",
   "description": "a simple and lightweight REST API framework. It is built on top of express.js and provides a set of decorators to simplify the development of REST APIs.",
   "author": {
     "name": "Robin Naumann",
@@ -44,6 +44,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "path": "^0.12.7",
     "swagger-ui-express": "^5.0.1"
   }
 }
