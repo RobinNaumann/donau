@@ -16,17 +16,17 @@ import { donauApi } from "./api";
 export function donauServerRun(
   port: number,
   config: DonauApiConfig<any>,
-  preServices?: ((e: express.Express) => void)[],
-  postServices?: ((e: express.Express) => void)[]
+  preServices?: (((e: express.Express) => void) | null | undefined)[],
+  postServices?: (((e: express.Express) => void) | null | undefined)[]
 ): express.Express | null {
   try {
     const app = express();
-    for (const s of preServices ?? []) s(app);
+    for (const s of preServices ?? []) s && s(app);
 
     const api = donauApi(config, port);
     api(app);
 
-    for (const s of postServices ?? []) s(app);
+    for (const s of postServices ?? []) s && s(app);
 
     app.listen(port);
     logger.success(`donau API server running on port ${chalk.bold(port)}`);

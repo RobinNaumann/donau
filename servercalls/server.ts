@@ -58,13 +58,9 @@ export function handleServerCalls<
         properties: {},
       },
       worker: async (body) => {
-        try {
-          const args = body as T[typeof key]["args"];
-          const result = await handlers[key](args, null);
-          return result;
-        } catch (e) {
-          return err.internalError(e);
-        }
+        const args = body as T[typeof key]["args"];
+        const result = await handlers[key](args, null);
+        return result;
       },
     });
   });

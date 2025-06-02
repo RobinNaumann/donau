@@ -26,23 +26,36 @@ export function useServerCalls<
         args: (typeof fnDef)["args"]
       ): Promise<(typeof fnDef)["return"]> => {
         // get own host name from browser environment
+        const apiProtocol = window.location.protocol;
         const apiHost = host ?? window?.location.hostname ?? "localhost";
         const apiPort = port ?? window?.location.port ?? "80";
 
-        const response = await fetch(
-          `http://${apiHost}:${apiPort}/api/calls` + (fnDef.path || `/${key}`),
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(args),
+        try {
+          const response = await fetch(
+            `${apiProtocol}//${apiHost}:${apiPort}/api/calls` +
+              (fnDef.path || `/${key}`),
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(args),
+            }
+          );
+          const data = await response.json();
+          if (!response.ok) throw data;
+
+          return data;
+        } catch (e: any) {
+          if ("code" in e && "message" in e && "data" in e) {
+            throw e;
           }
-        );
-        if (!response.ok)
-          throw new Error(`Error calling ${key}: ${response.statusText}`);
-        const data = await response.json();
-        return data;
+          throw {
+            code: -1,
+            message: "unknown error during server-call",
+            data: e,
+          };
+        }
       },
     };
   }, {} as { [K in keyof T]: (args: T[K]["args"]) => Promise<T[K]["return"]> });
