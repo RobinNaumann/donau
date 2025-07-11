@@ -1,3 +1,4 @@
+import type { MError } from "../src/util/error";
 import { type ServerCall } from "./shared";
 
 /**
@@ -52,9 +53,9 @@ export function useServerCalls<
           }
           throw {
             code: -1,
-            message: "unknown error during server-call",
+            message: "could not connect to server",
             data: e,
-          };
+          } as MError;
         }
       },
     };
