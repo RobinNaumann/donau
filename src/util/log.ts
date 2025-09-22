@@ -17,6 +17,9 @@ class Log {
     if (!message) return;
     if (!Array.isArray(message)) message = [message];
 
+    // don't log debug messages if not in debug mode
+    if (label === "DEBUG" && process.env.RUN_MODE !== "debug") return;
+
     for (let i = 0; i < message.length; i++) {
       if (typeof message[i] == "object") {
         console.log(message[i]);

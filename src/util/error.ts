@@ -1,3 +1,5 @@
+import { logger } from "./log";
+
 /**
  * a simple error object that can be returned by functions
  */
@@ -8,7 +10,7 @@ export interface MError {
 }
 
 function _err(code: number, message: string): (e?: any) => MError {
-  return (e) => ({ code, message, data: e ?? undefined });
+  return (e) => ({ code, message, cause: e ?? undefined });
 }
 
 /**
@@ -27,6 +29,7 @@ export const err = {
   conflict: _err(409, "conflict"),
   tooManyRequests: _err(429, "too many requests"),
   serverUnavailable: _err(503, "server unavailable"),
+  unknownError: _err(520, "unknown error"),
 };
 
 /**
@@ -35,20 +38,14 @@ export const err = {
  * @param error an error object. take a look at the `err` object for some pre-made errors
  */
 export function sendError(res: any, error: any) {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    "message" in error
-  ) {
-    let sCode = typeof error.code === "number" ? error.code : 500;
-    sCode = Math.round(Math.max(Math.min(sCode, 599), 400));
-    res.status(sCode).json(error);
-    return;
-  }
-  res.status(500).json({
-    code: 500,
-    message: "an unknown error has occurred",
-    cause: error,
-  });
+  const richErr =
+    error && typeof error === "object" && "code" in error && "message" in error
+      ? error
+      : err.unknownError(error);
+
+  logger.debug("Sending error response:", richErr);
+
+  let sCode = typeof richErr.code === "number" ? richErr.code : 500;
+  sCode = Math.round(Math.max(Math.min(sCode, 599), 100));
+  res.status(sCode).json(richErr);
 }
