@@ -18,7 +18,7 @@ export function donauServerRun(
   config: DonauApiConfig<any>,
   preServices?: (((e: express.Express) => void) | null | undefined)[],
   postServices?: (((e: express.Express) => void) | null | undefined)[]
-): express.Express | null {
+): { app: express.Express; server: any } | null {
   try {
     const app = express();
     for (const s of preServices ?? []) s && s(app);
@@ -28,9 +28,9 @@ export function donauServerRun(
 
     for (const s of postServices ?? []) s && s(app);
 
-    app.listen(port);
+    const server = app.listen(port);
     logger.success(`donau API server running on port ${chalk.bold(port)}`);
-    return app;
+    return { app, server };
   } catch (err) {
     logger.fatal("DONAU_SERVER: " + err);
     return null;

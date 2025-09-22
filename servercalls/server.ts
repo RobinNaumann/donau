@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import {
   chalk,
@@ -87,23 +88,25 @@ export function serveFrontend(
     // in the build folder, will just serve index.html. Client side routing is
     // going to make sure that the correct content will be loaded.
     app.use((req, res, next) => {
+      const filePath = path.join(_clientPath, req.path);
+
       if (
         req.path === "/api" ||
         req.path === "/docs" ||
         req.path.startsWith("/api/") ||
         req.path.startsWith("/docs/") ||
-        /(.ico|.js|.css|.jpg|.png|.map)$/i.test(req.path)
+        _fileExists(filePath)
+        // /(.ico|.js|.css|.jpg|.png|.map)$/i.test(req.path)
       ) {
-        next();
-      } else {
-        res.header(
-          "Cache-Control",
-          "private, must-revalidate, no-cache, no-store"
-        );
-        res.header("Expires", "-1");
-        res.header("Pragma", "no-cache");
-        res.sendFile(path.join(_clientPath, "index.html"));
+        return next();
       }
+      res.header(
+        "Cache-Control",
+        "private, must-revalidate, no-cache, no-store"
+      );
+      res.header("Expires", "-1");
+      res.header("Pragma", "no-cache");
+      res.sendFile(path.join(_clientPath, "index.html"));
     });
     app.use(express.static(_clientPath));
 
@@ -111,4 +114,13 @@ export function serveFrontend(
 
     logger.success(`serving ${chalk.bold("frontend")} at: /`);
   };
+}
+
+function _fileExists(filePath: string): boolean {
+  try {
+    var stats = fs.statSync(filePath);
+    return stats.isFile();
+  } catch (err) {
+    return false;
+  }
 }

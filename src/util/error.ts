@@ -35,13 +35,20 @@ export const err = {
  * @param error an error object. take a look at the `err` object for some pre-made errors
  */
 export function sendError(res: any, error: any) {
-  if ("code" in error && "message" in error && "data" in error) {
-    res.status(error.code).json(error);
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    "message" in error
+  ) {
+    let sCode = typeof error.code === "number" ? error.code : 500;
+    sCode = Math.round(Math.max(Math.min(sCode, 599), 400));
+    res.status(sCode).json(error);
     return;
   }
   res.status(500).json({
     code: 500,
     message: "an unknown error has occurred",
-    debug: error,
+    cause: error,
   });
 }
