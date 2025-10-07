@@ -148,8 +148,21 @@ function _makeParser<T>(
   p: ApiParameter<T, any>
 ): (v: string | null | undefined) => T {
   if (p.parser) return p.parser;
+
+  let type: any = p.type;
+  if (
+    type !== ParameterTypes.string &&
+    type !== ParameterTypes.number &&
+    type !== ParameterTypes.boolean &&
+    type !== ParameterTypes.object
+  ) {
+    // default types based on `in` if no parsers are defined:
+    if (p.in === "body") type = ParameterTypes.object;
+    else type = ParameterTypes.string;
+  }
+
   // parser for string
-  if (p.type === ParameterTypes.string)
+  if (type === ParameterTypes.string)
     return (v) => {
       if (v === null || v === undefined) {
         if (p.optional) return null as any;
@@ -159,7 +172,7 @@ function _makeParser<T>(
     };
 
   // parser for number
-  if (p.type === ParameterTypes.number)
+  if (type === ParameterTypes.number)
     return (v) => {
       if (v === null || v === undefined) {
         if (p.optional) return null as any;
@@ -171,7 +184,7 @@ function _makeParser<T>(
     };
 
   // parser for boolean
-  if (p.type === ParameterTypes.boolean)
+  if (type === ParameterTypes.boolean)
     return (v) => {
       if (v === null || v === undefined) {
         if (p.optional) return null as any;
@@ -183,13 +196,14 @@ function _makeParser<T>(
     };
 
   // parser for object
-  if (p.type === ParameterTypes.object)
+  if (type === ParameterTypes.object)
     return (v) => {
       if (v === null || v === undefined) {
         if (p.optional) return null as any;
         throw new Error("Expected object but got null or undefined");
       }
       try {
+        if (typeof v === "object") return v as any;
         return JSON.parse(v) as any;
       } catch (e) {
         throw new Error(`Expected object but got ${v}`);

@@ -43,7 +43,7 @@ export function handleServerCalls<
             properties: {},
           }),
         },
-        workerAuthed: async (user, body) => {
+        workerAuthed: async (user, { body }) => {
           try {
             const args = body as any as T[typeof key]["args"] & {
               user: typeof user;
@@ -67,7 +67,7 @@ export function handleServerCalls<
           properties: {},
         }),
       },
-      worker: async (body) => {
+      worker: async ({ body }) => {
         const args = body as T[typeof key]["args"];
         const result = await handlers[key](args, null);
         return result;
