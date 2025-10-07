@@ -48,13 +48,16 @@ export function useServerCalls<
 
           return data;
         } catch (e: any) {
-          if ("code" in e && "message" in e && "data" in e) {
-            throw e;
+          if (e && typeof e === "object" && "code" in e && "message" in e) {
+            throw {
+              ...e,
+              cause: e.cause ?? {},
+            };
           }
           throw {
             code: -1,
             message: "could not connect to server",
-            data: e,
+            cause: e,
           } as MError;
         }
       },

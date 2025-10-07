@@ -3,7 +3,8 @@ import {
   donauServerRun,
   err,
   grouped,
-  parameterPath,
+  parameter,
+  ParameterTypes,
   route,
   routeAuthed,
   type DonauRoute,
@@ -16,27 +17,33 @@ type AuthUser = {
 };
 const users: AuthUser[] = [];
 
-const protectedRoutes: DonauRoute<AuthUser>[] = [
+const protectedRoutes: DonauRoute<AuthUser, any>[] = [
   routeAuthed("/name", {
     summary: "Get your name",
     description: `This route is protected and requires authentication. it returns your name.
       Any non-empty string will be accepted as a valid token.`,
-    workerAuthed: (user) => {
+    workerAuthed: (user, {}) => {
       return { message: `Hello, ${user.name}!` };
     },
   }),
   routeAuthed("/name", {
     method: "post",
     summary: "Set your name",
-    reqBody: {
-      description: "Set your name",
-      required: ["name"],
-      properties: {
-        name: "string",
-      },
-    },
+    parameters: {
+      example: parameter.query({
+        type: ParameterTypes.string,
+        description: "An example query parameter",
+      }),
+      body: parameter.body({
+        type: "any" as any,
+        description: "Set your name",
+        properties: {
+          name: { type: "string", required: true },
+        },
+      }),
+    } as const,
     description: "set your name to a new value",
-    workerAuthed: (user, body) => {
+    workerAuthed: (user, { body }) => {
       const uIndex = users.findIndex((u) => u.username === user.username);
       if (uIndex === -1) return err.notFound("user not found");
       users[uIndex].name = body.name;
@@ -45,15 +52,16 @@ const protectedRoutes: DonauRoute<AuthUser>[] = [
   }),
 ];
 
-const routes: DonauRoute[] = [
+const routes: DonauRoute<any, any>[] = [
   route("/hello/{greeting}", {
     description: `A simple hello world route. It greets you with a message. The endpoint will return an error if you pass "bye" as the greeting.`,
-    parameters: [
-      parameterPath("greeting", {
+    parameters: {
+      greeting: parameter.path({
+        type: ParameterTypes.string,
         description: "The greeting to address you with",
       }),
-    ],
-    worker: (greeting) => {
+    },
+    worker: ({ greeting }) => {
       if (greeting === "bye") {
         return err.badRequest("I don't want to say bye!");
       }

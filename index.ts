@@ -6,6 +6,7 @@ export * from "./src/api/server";
 export * from "./src/models/m_api";
 export * from "./src/util/error";
 export * from "./src/util/log";
+export * from "./src/util/param";
 export * from "./src/util/route";
 
 import * as express from "express";

@@ -1,16 +1,20 @@
 // At the top of your server.js
 import bcrypt from "bcryptjs";
-import { err, express, grouped, route, type DonauRoute } from "../..";
+import type * as express from "express";
+import type { DonauRoute } from "../models/m_api";
+import { err } from "../util/error";
+import { parameter } from "../util/param";
+import { grouped, route } from "../util/route";
 import { DonauAuth } from "./auth";
 
-export const basicAuthBodyDef = {
+export const basicAuthBodyDef = parameter.body({
+  type: {} as { username: string; password: string },
   description: "user credentials",
-  required: ["username", "password"],
   properties: {
-    username: "string",
-    password: "string",
+    username: { type: "string", required: true },
+    password: { type: "string", required: true },
   },
-};
+});
 
 export type BasicAuthParams<User> = {
   onSignUp?: (username: string, passwordHash: string) => Promise<void> | void;
@@ -47,14 +51,14 @@ export class BasicAuth<User> extends DonauAuth<User> {
     return { message: "user created" };
   }
 
-  override get routes(): DonauRoute[] {
+  override get routes(): DonauRoute<any, any>[] {
     const routes = [
       // Signup route
       this.p.onSignUp &&
         route("/signup", {
           description: "sign up a new user",
           method: "post",
-          reqBody: basicAuthBodyDef,
+          parameters: { body: basicAuthBodyDef },
           worker: this.signupWorker.bind(this),
         }),
     ].filter((v) => !!v);

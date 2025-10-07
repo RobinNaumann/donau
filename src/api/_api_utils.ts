@@ -5,14 +5,15 @@ import {
   logger,
   type DonauApiConfig,
   type DonauRoute,
+  type ParamsType,
 } from "../..";
 
 // THIS FILE CONTAINS HELPER FUNCTIONS FOR THE DONAU API
 // IT IS NOT PART OF THE PUBLIC API AND SHOULD NOT BE USED DIRECTLY
 
-export function _mergeDefaults<U>(
-  config: DonauApiConfig<U>
-): DonauApiConfig<U> {
+export function _mergeDefaults<U, Params extends ParamsType>(
+  config: DonauApiConfig<U, Params>
+): DonauApiConfig<U, Params> {
   const nonNullConfig = Object.fromEntries(
     Object.entries(config).filter(([_, v]) => v != null)
   );
@@ -23,7 +24,7 @@ export function _mergeDefaults<U>(
  * throw an exception if the API contains authed routes and does not define "auth"
  * @param config the donau API configuration
  */
-export function _authDefinedGuard(config: DonauApiConfig<any>) {
+export function _authDefinedGuard(config: DonauApiConfig<any, any>) {
   if (
     config.routes.some(
       (r) => r.handlerAuthed != null || r.workerAuthed != null
@@ -58,10 +59,10 @@ export function _noHandler(req: express.Request, res: express.Response) {
  * @param port the port to use for the local server
  * @returns a new donau API configuration
  */
-export function _maybeLocalConfig<U>(
-  config: DonauApiConfig<U>,
+export function _maybeLocalConfig<U, Params extends ParamsType>(
+  config: DonauApiConfig<U, Params>,
   port?: number
-): DonauApiConfig<U> {
+): DonauApiConfig<U, Params> {
   if (!config.servers && port) {
     config.servers = [
       {
@@ -78,11 +79,11 @@ export function _maybeLocalConfig<U>(
 /**
  * returns true if the route is authed
  */
-export function _isAuthed(route: DonauRoute): boolean {
+export function _isAuthed(route: DonauRoute<any, any>): boolean {
   return route.handlerAuthed != null || route.workerAuthed != null;
 }
 
-export function _printStartupMsg(config: DonauApiConfig<any>) {
+export function _printStartupMsg(config: DonauApiConfig<any, any>) {
   const i = config.info;
   let indent = " ".repeat(12);
   let apiMsg = `├─ api at:   ${chalk.bold(config.apiPath)}`;

@@ -1,10 +1,11 @@
 import swaggerUi from "swagger-ui-express";
 import type {
-  ApiRequestBody,
+  ApiParameter,
   DonauApiConfig,
   DonauAuth,
   DonauRoute,
   express,
+  ParamsType,
 } from "../..";
 import { _isAuthed } from "../api/_api_utils";
 import { donauDocuCss } from "./donau.css";
@@ -15,7 +16,10 @@ var _baseOptions = {
   customfavIcon: "/assets/favicon.ico",
 };
 
-export function _useDocs<U>(e: express.Express, config: DonauApiConfig<U>) {
+export function _useDocs<U>(
+  e: express.Express,
+  config: DonauApiConfig<U, any>
+) {
   e.use(
     config.docsPath!,
     swaggerUi.serve,
@@ -38,16 +42,17 @@ export function _useDocs<U>(e: express.Express, config: DonauApiConfig<U>) {
   _addDocsRedirect(config.docsPath!, e);
 }
 
-function _toSwaggerBody(body: ApiRequestBody) {
+function _toSwaggerBody(body: ApiParameter<any, any>) {
+  if (body.in !== "body") return undefined;
   const props: any = {};
-  for (const k in body.properties) {
-    props[k] = { type: body.properties[k] };
+  for (const k in body.properties ?? {}) {
+    props[k] = { type: body.properties?.[k].type };
   }
 
   const examples: any = {};
-  for (const k in body.examples) {
+  for (const k in body.examples ?? {}) {
     examples[k] = {
-      value: body.examples[k],
+      value: body.examples?.[k],
     };
   }
 
@@ -58,7 +63,9 @@ function _toSwaggerBody(body: ApiRequestBody) {
       "application/json": {
         schema: {
           type: "object",
-          required: body.required ?? Object.keys(body.properties),
+          required: Object.entries(body.properties ?? {})
+            .map(([k, v]) => (v.required ? k : undefined))
+            .filter((k) => k !== undefined),
           properties: props,
         },
         examples: examples,
@@ -67,14 +74,31 @@ function _toSwaggerBody(body: ApiRequestBody) {
   };
 }
 
-function _createSwaggerRoute<U>(def: DonauRoute<U>, secSchemes: any[]): any {
+function _createSwaggerRoute<U, Params extends ParamsType>(
+  def: DonauRoute<U, Params>,
+  secSchemes: any[]
+): any {
   const authed = _isAuthed(def);
   return {
     [def.method ?? "get"]: {
       ...def,
       parameters:
-        def.parameters?.map((p) => ({ ...p, in: p.in ?? "query" })) ?? [],
-      requestBody: def.reqBody ? _toSwaggerBody(def.reqBody) : undefined,
+        Object.entries(def.parameters ?? {})
+          .filter(([_, p]) => p.in !== "body")
+          .map(([k, p]) => ({
+            ...p,
+            in: p.in ?? "query",
+            name: k,
+          })) ?? [],
+      requestBody: def.parameters
+        ? Object.values(def.parameters).find((p) => p.in === "body")
+          ? _toSwaggerBody(
+              Object.values(def.parameters).find(
+                (p) => p.in === "body"
+              ) as ApiParameter<any, any>
+            )
+          : undefined
+        : undefined,
       responses: def.responses ?? { "200": { description: "OK" } },
       security: authed ? secSchemes : undefined,
       worker: undefined,
@@ -91,7 +115,7 @@ function _addDocsRedirect(docsPath: string, e: express.Express) {
   });
 }
 
-function _makeSwaggerRoutes(config: DonauApiConfig<any>): any {
+function _makeSwaggerRoutes(config: DonauApiConfig<any, any>): any {
   const docuRoutes: any = {};
   for (const r of config.routes) {
     const sec = _securitySchemes(config.auth);

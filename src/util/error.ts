@@ -6,7 +6,7 @@ import { logger } from "./log";
 export interface MError {
   code: number;
   message: string;
-  data?: any;
+  cause?: any;
 }
 
 function _err(code: number, message: string): (e?: any) => MError {
@@ -43,9 +43,11 @@ export function sendError(res: any, error: any) {
       ? error
       : err.unknownError(error);
 
-  logger.debug("Sending error response:", richErr);
+  logger.debug("responding with error: ", richErr);
 
-  let sCode = typeof richErr.code === "number" ? richErr.code : 500;
-  sCode = Math.round(Math.max(Math.min(sCode, 599), 100));
+  // try to extract a valid HTTP status code from the error code
+  const richCode = Number.parseInt(`${richErr.code}`.replaceAll("HTTP_", ""));
+  let sCode = isNaN(richCode) ? 500 : richCode;
+  if (sCode < 100 || sCode > 599) sCode = 500;
   res.status(sCode).json(richErr);
 }

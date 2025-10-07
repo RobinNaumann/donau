@@ -3,9 +3,12 @@ import cors from "cors";
 import {
   err,
   express,
+  ParameterTypes,
   sendError,
+  type ApiParameter,
   type DonauApiConfig,
   type DonauRoute,
+  type ParamsType,
 } from "../..";
 import { _useDocs } from "../docs/_docs";
 import {
@@ -25,14 +28,17 @@ import { _authMiddleware, _remoteExtractMiddleware } from "./_middlewares";
  * @param port the port to show in the documentation if `servers` is omitted
  * @returns void
  */
-export function donauApi<U>(
-  config: DonauApiConfig<U>,
+export function donauApi<U, Params extends ParamsType>(
+  config: DonauApiConfig<U, Params>,
   port?: number
 ): (e: express.Express) => void {
   return (e: express.Express) => _donauApi(e, _maybeLocalConfig(config, port));
 }
 
-function _donauApi<U>(e: express.Express, config: DonauApiConfig<U>): void {
+function _donauApi<U, Params extends ParamsType>(
+  e: express.Express,
+  config: DonauApiConfig<U, Params>
+): void {
   config = _mergeDefaults(config);
   _authDefinedGuard(config);
   // add the auth routes if defined
@@ -63,7 +69,10 @@ function _donauApi<U>(e: express.Express, config: DonauApiConfig<U>): void {
   _printStartupMsg(config);
 }
 
-function _makeWorker<U>(def: DonauRoute<U>, auth: boolean) {
+function _makeWorker<U, Params extends ParamsType>(
+  def: DonauRoute<U, Params>,
+  auth: boolean
+) {
   return async (req: express.Request, res: express.Response) => {
     try {
       if (auth) {
@@ -77,7 +86,7 @@ function _makeWorker<U>(def: DonauRoute<U>, auth: boolean) {
         }
 
         if (def.workerAuthed) {
-          const r = await def.workerAuthed?.(user, ..._getParams(req, def));
+          const r = await def.workerAuthed?.(user, _getParams(req, def));
           r instanceof Object ? res.json(r) : res.send(r);
           return;
         }
@@ -92,7 +101,7 @@ function _makeWorker<U>(def: DonauRoute<U>, auth: boolean) {
       }
 
       if (def.worker) {
-        const r = await def.worker?.(..._getParams(req, def));
+        const r = await def.worker?.(_getParams(req, def));
         r instanceof Object ? res.json(r) : res.send(r);
         return;
       }
@@ -103,13 +112,89 @@ function _makeWorker<U>(def: DonauRoute<U>, auth: boolean) {
   };
 }
 
-function _getParams(req: express.Request, def: DonauRoute) {
-  const params: any[] = [];
-  if (def.reqBody) params.push(req.body);
+function _getParams<Params extends ParamsType>(
+  req: express.Request,
+  def: DonauRoute<any, Params>
+): { [key in keyof Params]: Params[key]["type"] } {
+  const params: any = {};
+  //if (def.reqBody) params.push(req.body);
 
-  for (const p of def.parameters ?? []) {
-    if (p.in === "path") params.push(req.params[p.name]);
-    if (p.in === "query") params.push(req.query[p.name]);
+  for (const [k, v] of Object.entries(def.parameters ?? {})) {
+    let val = undefined;
+    if (v.in === "path") {
+      val = req.params[k];
+    } else if (v.in === "header") {
+      val = req.headers[k.toLowerCase()];
+    } else if (v.in === "body") {
+      val = req.body;
+    } else {
+      // default to query
+      val = req.query[k];
+    }
+
+    try {
+      params[k] = _makeParser(v)(val as any);
+    } catch (e) {
+      throw err.badRequest(
+        `Error parsing parameter ${k}: ${(e as Error).message}`
+      );
+    }
   }
+
   return params;
+}
+
+function _makeParser<T>(
+  p: ApiParameter<T, any>
+): (v: string | null | undefined) => T {
+  if (p.parser) return p.parser;
+  // parser for string
+  if (p.type === ParameterTypes.string)
+    return (v) => {
+      if (v === null || v === undefined) {
+        if (p.optional) return null as any;
+        throw new Error("Expected string but got null or undefined");
+      }
+      return v as any;
+    };
+
+  // parser for number
+  if (p.type === ParameterTypes.number)
+    return (v) => {
+      if (v === null || v === undefined) {
+        if (p.optional) return null as any;
+        throw new Error("Expected number but got null or undefined");
+      }
+      const n = Number(v);
+      if (isNaN(n)) throw new Error(`Expected number but got ${v}`);
+      return n as any;
+    };
+
+  // parser for boolean
+  if (p.type === ParameterTypes.boolean)
+    return (v) => {
+      if (v === null || v === undefined) {
+        if (p.optional) return null as any;
+        throw new Error("Expected boolean but got null or undefined");
+      }
+      if (v.toLowerCase() === "true") return true as any;
+      if (v.toLowerCase() === "false") return false as any;
+      throw new Error(`Expected boolean but got ${v}`);
+    };
+
+  // parser for object
+  if (p.type === ParameterTypes.object)
+    return (v) => {
+      if (v === null || v === undefined) {
+        if (p.optional) return null as any;
+        throw new Error("Expected object but got null or undefined");
+      }
+      try {
+        return JSON.parse(v) as any;
+      } catch (e) {
+        throw new Error(`Expected object but got ${v}`);
+      }
+    };
+
+  throw new Error("No parser defined for parameter");
 }

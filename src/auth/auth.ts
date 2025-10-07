@@ -1,6 +1,6 @@
 // At the top of your server.js
 import express from "express";
-import { type DonauRoute } from "../..";
+import type { DonauRoute } from "../models/m_api";
 
 const _bearerAuth = {
   bearerAuth: {
@@ -34,7 +34,7 @@ export abstract class DonauAuth<User> {
    * @description This method should be implemented to return the routes for the authentication.
    * they will be added to the api routes.
    */
-  public abstract get routes(): DonauRoute[];
+  public abstract get routes(): DonauRoute<any, any>[];
 
   /**
    * Middleware to protect routes

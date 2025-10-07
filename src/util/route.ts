@@ -1,4 +1,4 @@
-import type { ApiParameter, DonauRoute } from "../models/m_api";
+import type { DonauRoute, ParamsType } from "../models/m_api";
 
 type HttpMethod = "get" | "post" | "delete";
 
@@ -10,8 +10,8 @@ type HttpMethod = "get" | "post" | "delete";
  * @param param1 relevant information for the group
  * @returns the grouped route definitions
  */
-export function grouped<U>(
-  defs: DonauRoute<U>[],
+export function grouped<U, Params extends ParamsType>(
+  defs: DonauRoute<U, Params>[],
   { tags, prefix }: { prefix?: string; tags?: string[] }
 ): any {
   return defs.map((d) => ({
@@ -25,21 +25,23 @@ export function grouped<U>(
  * Create a route definition for the donau API. This function is used to define
  * a **unauthorized** (unprotected) route of the API. If you want to define a
  * route that requires authentication, use the `routeAuthed` function.
- * @param param0 relevant information for the route
+ * @param path the path of the route. You can define path parameters using curly braces, e.g., `/users/{userId}`
+ * @param param1 relevant information for the route. All parameters you define will be available to the worker.
+ * For a request body, use the `reqBody` property.
  * @returns the route definition
  */
-export function route<U>(
+export function route<U, Params extends ParamsType>(
   path: string,
   {
     method = "get",
     ...rest
   }: Omit<
-    DonauRoute<U>,
+    DonauRoute<U, Params>,
     "path" | "workerAuthed" | "handlerAuthed" | "method"
   > & {
     method?: HttpMethod;
   }
-): DonauRoute<U> {
+): DonauRoute<U, Params> {
   return { method, ...rest, path };
 }
 
@@ -47,64 +49,18 @@ export function route<U>(
  * Create a route definition for the donau API. This function is used to define
  * a **authorized** (protected) route of the API. If you want to define a
  * route that does not require authentication, use the `route` function.
- * @param param0 relevant information for the route
+ * @param path the path of the route. You can define path parameters using curly braces, e.g., `/users/{userId}`
+ * @param param1 relevant information for the route
  * @returns the route definition
  */
-export function routeAuthed<U>(
+export function routeAuthed<U, Params extends ParamsType>(
   path: string,
   {
     method = "get",
     ...rest
-  }: Omit<DonauRoute<U>, "path" | "worker" | "handler" | "method"> & {
+  }: Omit<DonauRoute<U, Params>, "path" | "worker" | "handler" | "method"> & {
     method?: HttpMethod;
   }
-): DonauRoute<U> {
+): DonauRoute<U, Params> {
   return { method, ...rest, path };
-}
-
-type _paramParam = Omit<ApiParameter, "in" | "name" | "type" | "required"> & {
-  type?: "string" | "number";
-  required?: boolean;
-};
-
-/**
- * Create a parameter definition for the donau API. This function is used to define
- * a parameter that is passed to the API via the query string.
- * @param name the name of the parameter
- * @param param0 relevant information for the parameter
- * @returns the parameter definition
- */
-export function parameterQuery(
-  name: string,
-  { required = true, type = "string", ...rest }: _paramParam
-): ApiParameter {
-  return { ...rest, in: "query", required, type, name };
-}
-
-/**
- * Create a parameter definition for the donau API. This function is used to define
- * a parameter that is passed to the API via the path.
- * @param name the name of the parameter as it is used in the path
- * @param param0 relevant information for the parameter
- * @returns the parameter definition
- */
-export function parameterPath(
-  name: string,
-  { required = true, type = "string", ...rest }: _paramParam
-): ApiParameter {
-  return { ...rest, in: "path", required, type, name };
-}
-
-/**
- * Create a parameter definition for the donau API. This function is used to define
- * a parameter that is passed to the API via the header.
- * @param name the name of the parameter
- * @param param0 relevant information for the parameter
- * @returns the parameter definition
- */
-export function parameterHeader(
-  name: string,
-  { required = true, type = "string", ...rest }: _paramParam
-): ApiParameter {
-  return { ...rest, in: "header", required, type, name };
 }

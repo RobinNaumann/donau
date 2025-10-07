@@ -15,7 +15,7 @@ import { donauApi } from "./api";
  */
 export function donauServerRun(
   port: number,
-  config: DonauApiConfig<any>,
+  config: DonauApiConfig<any, any>,
   preServices?: (((e: express.Express) => void) | null | undefined)[],
   postServices?: (((e: express.Express) => void) | null | undefined)[]
 ): { app: express.Express; server: any } | null {

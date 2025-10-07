@@ -6,6 +6,7 @@ import {
   express,
   grouped,
   logger,
+  parameter,
   route,
   routeAuthed,
   type DonauRoute,
@@ -25,7 +26,7 @@ export function handleServerCalls<
   handlers: {
     [K in keyof T]: (args: T[K]["args"], user: any) => Promise<T[K]["return"]>;
   }
-): DonauRoute[] {
+): DonauRoute<any, any>[] {
   const routes = Object.keys(def).map((key) => {
     const fnDef = def[key];
 
@@ -35,13 +36,18 @@ export function handleServerCalls<
       return routeAuthed(fnDef.path || `/${key}`, {
         description: `Handles the ${key} server call`,
         method: "post",
-        reqBody: {
-          description: `Arguments for ${key}. Not documented as they may change`,
-          properties: {},
+        parameters: {
+          body: parameter.body({
+            type: "any" as any,
+            description: `Arguments for ${key}. Not documented as they may change`,
+            properties: {},
+          }),
         },
         workerAuthed: async (user, body) => {
           try {
-            const args = body as T[typeof key]["args"] & { user: typeof user };
+            const args = body as any as T[typeof key]["args"] & {
+              user: typeof user;
+            };
             const result = await handlers[key](args, user);
             return result;
           } catch (e) {
@@ -54,9 +60,12 @@ export function handleServerCalls<
     return route(fnDef.path || `/${key}`, {
       description: `Handles the ${key} server call`,
       method: "post",
-      reqBody: {
-        description: `Arguments for ${key}. Not documented as they may change`,
-        properties: {},
+      parameters: {
+        body: parameter.body({
+          type: "any" as any,
+          description: `Arguments for ${key}. Not documented as they may change`,
+          properties: {},
+        }),
       },
       worker: async (body) => {
         const args = body as T[typeof key]["args"];

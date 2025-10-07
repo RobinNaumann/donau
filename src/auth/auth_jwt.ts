@@ -1,7 +1,10 @@
 // At the top of your server.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { err, express, grouped, route, type DonauRoute } from "../..";
+import { err } from "../util/error";
+import type * as express from "express";
+import { grouped, route } from "../util/route";
+import type { DonauRoute } from "../models/m_api";
 import { DonauAuth } from "./auth";
 import { basicAuthBodyDef } from "./auth_basic";
 
@@ -64,13 +67,13 @@ export class JWTAuth<User> extends DonauAuth<User> {
     };
   }
 
-  override get routes(): DonauRoute[] {
+  override get routes(): DonauRoute<any, any>[] {
     const routes = [
       // Login route
       route("/login", {
         description: "log in as user",
         method: "post",
-        reqBody: basicAuthBodyDef,
+        parameters: { body: basicAuthBodyDef },
         worker: this.loginWorker.bind(this),
       }),
 
@@ -79,7 +82,7 @@ export class JWTAuth<User> extends DonauAuth<User> {
         route("/signup", {
           description: "sign up a new user",
           method: "post",
-          reqBody: basicAuthBodyDef,
+          parameters: { body: basicAuthBodyDef },
           worker: this.signupWorker.bind(this),
         }),
     ].filter((v) => !!v);
