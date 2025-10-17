@@ -5,7 +5,7 @@ import {
   ParameterTypes,
   route,
   type DonauRoute,
-} from "..";
+} from "../server";
 
 const routes: DonauRoute[] = [
   route("/hello/{greeting}", {

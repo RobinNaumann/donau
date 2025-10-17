@@ -1,4 +1,4 @@
-import { sendError, type DonauAuth, type express } from "../..";
+import { sendError, type DonauAuth, type express } from "../../server";
 
 /**
  * a middleware that extracts the socket information from the request and adds it to the request object
@@ -25,16 +25,14 @@ export function _remoteExtractMiddleware() {
  * @returns
  */
 export function _authMiddleware<U>(auth: DonauAuth<U>) {
-  return (
+  return async (
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
   ) => {
     try {
-      auth.middleware(req, res, (user: U) => {
-        (req as any).user = user;
-        next();
-      });
+      (req as any).user = await auth.authGuard(req);
+      next();
     } catch (e) {
       sendError(res, e);
     }

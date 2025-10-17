@@ -1,4 +1,4 @@
-import type { MError } from "./util/error";
+import type { MError } from "../util/error";
 
 export interface PostArgs {
   path?: { [key: string]: string | number | boolean | undefined } | null;

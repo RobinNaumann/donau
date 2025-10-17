@@ -1,3 +1,4 @@
+export type ServerCalls = { [key: string]: ServerCall<any, any> };
 export interface ServerCall<I extends { [k: string]: any }, O> {
   path?: string;
   auth?: boolean;
@@ -11,3 +12,5 @@ export function serverCall<I extends { [k: string]: any }, O>(p?: {
 }): ServerCall<I, O> {
   return (p ?? {}) as ServerCall<I, O>;
 }
+
+export type Obj = { [key: string]: any };

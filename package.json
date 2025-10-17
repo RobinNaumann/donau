@@ -1,6 +1,6 @@
 {
   "name": "donau",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "a lightweight and typesafe REST API framework. It is built on top of express.js and provides a set of decorators to simplify the development of REST APIs.",
   "author": {
     "name": "Robin Naumann",
@@ -26,6 +26,13 @@
   "license": "MIT",
   "module": "index.ts",
   "type": "module",
+  "exports": {
+    "./client": "./client.ts",
+    "./server": "./server.ts",
+    "./servercalls/*": "./servercalls/*.ts",
+    "./serverchannels/*": "./serverchannels/*.ts",
+    "./api/client.ts": "./src/api/api_client.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/cookie-parser": "^1.4.7",
@@ -38,6 +45,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@types/ws": "^8.18.1",
     "bcryptjs": "^3.0.2",
     "chalk": "^5.3.0",
     "cookie-parser": "^1.4.6",
@@ -45,6 +53,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "path": "^0.12.7",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.3"
   }
 }

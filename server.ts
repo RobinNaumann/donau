@@ -2,6 +2,7 @@ export * from "./src/auth/auth";
 export * from "./src/auth/auth_basic";
 export * from "./src/auth/auth_jwt";
 
+export * from "./src/api/serve";
 export * from "./src/api/server";
 export * from "./src/models/m_api";
 export * from "./src/util/error";

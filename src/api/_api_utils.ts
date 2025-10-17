@@ -6,7 +6,7 @@ import {
   type DonauApiConfig,
   type DonauRoute,
   type ParamsType,
-} from "../..";
+} from "../../server";
 
 // THIS FILE CONTAINS HELPER FUNCTIONS FOR THE DONAU API
 // IT IS NOT PART OF THE PUBLIC API AND SHOULD NOT BE USED DIRECTLY
@@ -94,4 +94,25 @@ export function _printStartupMsg(config: DonauApiConfig<any, any>) {
       `\n${indent}${apiMsg}` +
       (config.docsPath === null ? "" : `\n${indent}${docMsg}`)
   );
+}
+
+export function uniqueAlphaNum(
+  existing: string[],
+  length: number,
+  prefix = ""
+): string {
+  let newId;
+  do {
+    newId = randomAlphaNum(length, prefix);
+  } while (existing.includes(newId));
+  return newId;
+}
+
+export function randomAlphaNum(length: number, prefix = ""): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = prefix;
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }

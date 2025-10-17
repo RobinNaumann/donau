@@ -8,7 +8,7 @@ import {
   route,
   routeAuthed,
   type DonauRoute,
-} from "..";
+} from "../server";
 
 type AuthUser = {
   username: string;

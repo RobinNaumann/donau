@@ -1,10 +1,10 @@
 // At the top of your server.js
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { err } from "../util/error";
 import type * as express from "express";
-import { grouped, route } from "../util/route";
+import jwt from "jsonwebtoken";
 import type { DonauRoute } from "../models/m_api";
+import { err, sendError } from "../util/error";
+import { grouped, route } from "../util/route";
 import { DonauAuth } from "./auth";
 import { basicAuthBodyDef } from "./auth_basic";
 
@@ -21,11 +21,17 @@ type ExpiresInTimes =
   | "1y";
 
 export type JWTAuthParams<User> = {
+  debugMode?: boolean;
   secretKey: string;
   expiresIn?: ExpiresInTimes | number;
-  onSignUp?: (username: string, passwordHash: string) => Promise<void> | void;
+  allowSignup?: boolean;
+  onUserCreate: (
+    username: string,
+    passwordHash: string
+  ) => Promise<void> | void;
   getPasswordHash: (username: string) => Promise<string | null | undefined>;
   getUser: (username: string) => Promise<User | null | undefined>;
+  userHasRole?: (user: User, roles: string[]) => boolean;
 };
 
 export class JWTAuth<User> extends DonauAuth<User> {
@@ -33,27 +39,19 @@ export class JWTAuth<User> extends DonauAuth<User> {
     super();
   }
 
-  // Signup route
-  private async signupWorker(body: any) {
-    if (!body.username || !body.password) {
-      return err.badRequest("username and password required");
-    }
-
-    const hash = await this.hashPassword(body.password);
-
-    // Store user
-    await this.p.onSignUp?.(body.username, hash);
-    return { message: "user created" };
+  public async createUser(username: string, password: string): Promise<void> {
+    const hash = await this.hashPassword(password);
+    await this.p.onUserCreate(username, hash);
   }
 
-  private async loginWorker(body: any) {
+  private async loginWorker(body: any, res: express.Response): Promise<void> {
     if (!body.username || !body.password) {
-      return err.badRequest("username and password required");
+      throw err.notAuthorized("username and password required");
     }
     const storedHash = await this.p.getPasswordHash(body.username);
 
     if (!storedHash || !(await bcrypt.compare(body.password, storedHash))) {
-      return err.notAuthorized("invalid username or password");
+      throw err.notAuthorized("invalid username or password");
     }
 
     // Generate token
@@ -61,29 +59,67 @@ export class JWTAuth<User> extends DonauAuth<User> {
       expiresIn: this.p.expiresIn || "1h",
     });
 
-    return {
-      message: "login successful",
-      token,
-    };
+    // Return a function to set cookie in Express response
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: !(this.p.debugMode ?? false),
+      sameSite: this.p.debugMode ?? false ? "lax" : "strict",
+      maxAge: 1000 * 60 * 60, // 1 hour
+    });
   }
 
   override get routes(): DonauRoute<any, any>[] {
-    const routes = [
+    const routes: DonauRoute<any, any>[] = [
       // Login route
       route("/login", {
         description: "log in as user",
         method: "post",
         parameters: { body: basicAuthBodyDef },
-        worker: this.loginWorker.bind(this),
+        handler: async (req, res) => {
+          // if already authenticated, return the user
+          try {
+            const user = await this._userFromReq(req);
+            if (user) {
+              if (!user) throw err.notAuthorized("invalid token");
+              res.status(200).send({ user: user });
+              return;
+            }
+
+            // if not authenticated, try to log in
+            await this.loginWorker(req.body, res);
+
+            res
+              .status(200)
+              .send({ user: await this.p.getUser(req.body.username) });
+          } catch (error) {
+            sendError(res, error);
+          }
+        },
+      }),
+
+      // Logout route
+      route("/logout", {
+        description: "log out the current user",
+        method: "get",
+        handler: async (req, res) => {
+          res.clearCookie("auth_token");
+          res.status(200).send({ message: "logged out" });
+        },
       }),
 
       // Signup route
-      this.p.onSignUp &&
+      this.p.allowSignup &&
         route("/signup", {
           description: "sign up a new user",
           method: "post",
           parameters: { body: basicAuthBodyDef },
-          worker: this.signupWorker.bind(this),
+          worker: async (body: any) => {
+            if (!body.username || !body.password)
+              return err.badRequest("username and password required");
+
+            await this.createUser(body.username, body.password);
+            return { message: "user created" };
+          },
         }),
     ].filter((v) => !!v);
 
@@ -91,6 +127,13 @@ export class JWTAuth<User> extends DonauAuth<User> {
       tags: ["auth"],
       prefix: "/auth",
     });
+  }
+
+  userHasRole(user: User, roles: string[]): boolean {
+    if (this.p.userHasRole) {
+      return this.p.userHasRole(user, roles);
+    }
+    return super.userHasRole(user, roles);
   }
 
   /**
@@ -102,32 +145,26 @@ export class JWTAuth<User> extends DonauAuth<User> {
     return bcrypt.hash(password, 8);
   }
 
-  override async middleware(
-    req: express.Request,
-    res: express.Response,
-    next: (user: User) => void
-  ) {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+  override async authGuard(req: express.Request): Promise<User> {
+    const user = await this._userFromReq(req);
+    if (!user) throw err.notAuthorized("invalid token");
+    return user;
+  }
 
-    if (!token) {
-      res.status(401).send("auth token required");
-      return;
-    }
+  private _userFromReq(req: express.Request): Promise<User | null> {
+    return new Promise((resolve, reject) => {
+      const token = req.cookies?.auth_token;
 
-    jwt.verify(token, this.p.secretKey, async (err: any, user: any) => {
-      if (err) {
-        res.status(403).send("invalid or expired auth token");
-        return;
-      }
+      if (!token) return resolve(null);
 
-      const richUser = await this.p.getUser(user.username);
-      if (!richUser) {
-        res.status(403).send("user not found");
-        return;
-      }
+      jwt.verify(token, this.p.secretKey, async (err: any, user: any) => {
+        if (err || !user?.username) return resolve(null);
 
-      next(richUser);
+        const richUser = await this.p.getUser(user.username);
+        if (!richUser) return resolve(null);
+
+        return resolve(richUser ?? null);
+      });
     });
   }
 }

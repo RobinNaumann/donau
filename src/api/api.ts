@@ -9,7 +9,7 @@ import {
   type DonauApiConfig,
   type DonauRoute,
   type ParamsType,
-} from "../..";
+} from "../../server";
 import { _useDocs } from "../docs/_docs";
 import {
   _authDefinedGuard,

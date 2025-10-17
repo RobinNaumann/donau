@@ -78,16 +78,11 @@ export class BasicAuth<User> extends DonauAuth<User> {
     return bcrypt.hash(password, 8);
   }
 
-  override async middleware(
-    req: express.Request,
-    res: express.Response,
-    next: (user: User) => void
-  ) {
+  override async authGuard(req: express.Request): Promise<User> {
     const authorization = req.headers.authorization;
 
     if (!authorization || !authorization.startsWith("Basic ")) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
+      throw err.notAuthorized("No authorization header provided");
     }
 
     const base64Credentials = authorization.split(" ")[1];
@@ -97,24 +92,19 @@ export class BasicAuth<User> extends DonauAuth<User> {
     const [username, password] = credentials.split(":");
 
     if (!username || !password) {
-      res.status(401).json({ error: "Invalid credentials" });
-      return;
+      throw err.notAuthorized("missing credentials");
     }
 
     const passwordHash = await this.p.getPasswordHash(username);
 
     if (!passwordHash || !(await bcrypt.compare(password, passwordHash))) {
-      res.status(401).json({ error: "Invalid username or password" });
-      return;
+      throw err.notAuthorized("Invalid username or password");
     }
 
     const user = await this.p.getUser(username);
 
-    if (!user) {
-      res.status(401).json({ error: "User not found" });
-      return;
-    }
+    if (!user) throw err.notAuthorized("user not found");
 
-    next(user);
+    return user;
   }
 }

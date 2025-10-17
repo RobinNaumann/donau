@@ -6,7 +6,7 @@ import type {
   DonauRoute,
   express,
   ParamsType,
-} from "../..";
+} from "../../server";
 import { _isAuthed } from "../api/_api_utils";
 import { donauDocuCss } from "./donau.css";
 
